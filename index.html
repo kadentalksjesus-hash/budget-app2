@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Budget">
+<title>Budget</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --purple:#7C3AED;--purple-light:#EDE9FE;
+  --green:#059669;--green-light:#D1FAE5;
+  --red:#DC2626;--red-light:#FEE2E2;
+  --yellow:#D97706;--yellow-light:#FEF3C7;
+  --text:#111827;--muted:#6B7280;--border:#E5E7EB;
+  --bg:#F3F4F6;--white:#fff;
+  --nav:72px;--r:16px;
+  --shadow:0 1px 4px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05)
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;max-width:430px;margin:0 auto;padding-bottom:calc(var(--nav) + 16px)}
+
+/* NAV */
+nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;height:var(--nav);background:var(--white);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;padding-bottom:env(safe-area-inset-bottom);z-index:100}
+nav button{background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;cursor:pointer;color:var(--muted);font-size:10px;font-weight:600;flex:1;letter-spacing:.2px}
+nav button.active{color:var(--purple)}
+nav button svg{width:22px;height:22px}
+
+/* HEADERS */
+.hdr{background:linear-gradient(135deg,var(--purple) 0%,#4F46E5 100%);padding:52px 20px 24px;color:#fff}
+.hdr.dark{background:linear-gradient(135deg,#0F172A 0%,#1E293B 100%)}
+.hdr h1{font-size:14px;font-weight:700;opacity:.7;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.hdr-big{font-size:40px;font-weight:800;letter-spacing:-1px}
+.hdr-sub{font-size:12px;opacity:.65;margin-top:2px}
+.hdr-row{display:flex;margin-top:18px}
+.hdr-stat{text-align:center;flex:1}
+.hdr-stat .val{font-size:18px;font-weight:700}
+.hdr-stat .lbl{font-size:10px;opacity:.7;margin-top:2px;text-transform:uppercase;letter-spacing:.3px}
+.hdr-div{width:1px;background:rgba(255,255,255,.2);margin:4px 0}
+.wbtn{background:rgba(255,255,255,.18);border:none;color:#fff;font-size:11px;font-weight:700;padding:5px 14px;border-radius:20px;cursor:pointer;margin-top:10px;text-transform:uppercase;letter-spacing:.3px}
+
+/* SECTIONS & CARDS */
+.sec{padding:0 16px;margin-top:18px}
+.sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px}
+.card{background:var(--white);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+
+/* ROWS */
+.row{display:flex;align-items:center;padding:13px 16px;gap:12px;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:none}
+.row-icon{font-size:20px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:var(--bg);border-radius:10px;flex-shrink:0}
+.row-info{flex:1;min-width:0}
+.row-name{font-size:15px;font-weight:600}
+.row-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.row-amt{font-size:15px;font-weight:700}
+.row-amt.inc{color:var(--green)}
+.row-amt.exp{color:var(--red)}
+.row.paid .row-name{text-decoration:line-through;color:var(--muted)}
+.row.paid .row-amt{color:var(--muted)}
+
+/* CHECK BUTTON */
+.chk{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.chk.on{background:var(--green);border-color:var(--green)}
+.chk svg{width:14px;height:14px;stroke:#fff;display:none}
+.chk.on svg{display:block}
+
+/* BADGES */
+.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.3px;margin-left:6px}
+.badge-red{background:var(--red-light);color:var(--red)}
+.badge-yellow{background:var(--yellow-light);color:var(--yellow)}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(var(--nav) + 16px);right:16px;width:54px;height:54px;border-radius:27px;background:var(--purple);color:#fff;font-size:26px;border:none;cursor:pointer;z-index:99;box-shadow:0 4px 14px rgba(124,58,237,.45);display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.fab:active{transform:scale(.92)}
+.fab.hide{display:none}
+
+/* MODALS */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--white);border-radius:24px 24px 0 0;width:100%;max-width:430px;margin:0 auto;padding:20px 20px calc(24px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .25s cubic-bezier(.32,.72,0,1);max-height:92vh;overflow-y:auto}
+.overlay.open .modal{transform:translateY(0)}
+.handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:16px}
+
+/* FORM */
+label{font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;margin-top:14px;text-transform:uppercase;letter-spacing:.4px}
+input,select{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:16px;background:var(--white);color:var(--text);appearance:none;outline:none}
+input:focus,select:focus{border-color:var(--purple)}
+.amt-wrap{position:relative}
+.amt-pre{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;font-weight:700;color:var(--muted);pointer-events:none}
+.amt-wrap input{padding-left:28px;font-size:24px;font-weight:800}
+.type-toggle{display:flex;background:var(--bg);border-radius:10px;padding:3px;margin-bottom:14px}
+.type-btn{flex:1;padding:9px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;background:none;color:var(--muted)}
+.type-btn.active.inc{background:var(--white);color:var(--green);box-shadow:var(--shadow)}
+.type-btn.active.exp{background:var(--white);color:var(--red);box-shadow:var(--shadow)}
+.save-btn{width:100%;padding:15px;background:var(--purple);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;margin-top:18px}
+.cancel-btn{width:100%;padding:12px;background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;margin-top:6px}
+.del-btn{width:100%;padding:12px;background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;margin-top:4px}
+
+/* PLAN PAGE */
+.plan-hdr{background:linear-gradient(135deg,#0F172A 0%,#1E293B 100%);padding:52px 20px 24px;color:#fff}
+.plan-hdr h1{font-size:14px;font-weight:700;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.plan-stats{display:flex;gap:28px;margin-bottom:18px}
+.plan-stat-num{font-size:28px;font-weight:800}
+.plan-stat-lbl{font-size:10px;opacity:.6;text-transform:uppercase;letter-spacing:.3px;margin-top:1px}
+.log-btn{background:#10B981;border:none;color:#fff;font-size:15px;font-weight:700;padding:13px 32px;border-radius:26px;cursor:pointer}
+.log-btn:active{opacity:.9}
+
+/* PAYCHECK BREAKDOWN CARD */
+.pc-hdr{padding:14px 16px;display:flex;justify-content:space-between;align-items:center;background:#F0FDF4;border-bottom:1px solid var(--border)}
+.pc-hdr-lbl{font-size:13px;font-weight:700;color:#059669}
+.pc-hdr-amt{font-size:20px;font-weight:800;color:#059669}
+.alloc-row{display:flex;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border);gap:12px}
+.alloc-row:last-child{border-bottom:none}
+.alloc-emoji{font-size:20px;width:32px;text-align:center}
+.alloc-name{flex:1;font-size:14px;font-weight:600}
+.alloc-amt{font-size:15px;font-weight:800}
+.alloc-check{font-size:16px}
+
+/* PRIORITY ROW */
+.pri-row{display:flex;align-items:center;padding:11px 12px;border-bottom:1px solid var(--border);gap:8px}
+.pri-row:last-child{border-bottom:none}
+.pri-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:800;flex-shrink:0}
+.pri-emoji{font-size:18px;flex-shrink:0}
+.pri-info{flex:1;min-width:0}
+.pri-name{font-size:14px;font-weight:700}
+.pri-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.pri-arrows{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.arr-btn{background:var(--border);border:none;border-radius:6px;width:26px;height:21px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.arr-btn:disabled{opacity:.25;cursor:default}
+.pri-edit{background:var(--purple-light);border:none;color:var(--purple);font-size:11px;font-weight:700;padding:5px 9px;border-radius:9px;cursor:pointer;flex-shrink:0}
+.pri-del{background:var(--red-light);border:none;color:var(--red);font-size:11px;font-weight:700;padding:5px 8px;border-radius:9px;cursor:pointer;flex-shrink:0}
+
+/* PAYCHECK LOG ROW */
+.pc-row{padding:12px 16px;border-bottom:1px solid var(--border)}
+.pc-row:last-child{border-bottom:none}
+.pc-row-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.pc-row-date{font-size:12px;font-weight:600;color:var(--muted)}
+.pc-row-right{display:flex;align-items:center;gap:8px}
+.pc-row-amt{font-size:17px;font-weight:800;color:var(--green)}
+.pc-del{background:var(--red-light);border:none;color:var(--red);font-size:11px;font-weight:700;padding:4px 9px;border-radius:10px;cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px}
+
+/* LIVE PREVIEW */
+.preview-wrap{margin-top:16px;border:1.5px solid var(--border);border-radius:14px;overflow:hidden;display:none}
+.preview-wrap.show{display:block}
+.preview-title{padding:10px 14px;background:var(--bg);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.preview-row{display:flex;align-items:center;padding:9px 14px;border-top:1px solid var(--border);gap:10px}
+.preview-emoji{font-size:17px;width:24px;text-align:center}
+.preview-name{flex:1;font-size:13px;font-weight:600}
+.preview-amt{font-size:14px;font-weight:800}
+.preview-chk{font-size:14px}
+
+/* SUMMER CARD */
+.summer-card{background:linear-gradient(135deg,#059669,#0D9488);border-radius:var(--r);padding:18px 20px;color:#fff;margin:0 16px}
+.summer-card h3{font-size:11px;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.summer-big{font-size:36px;font-weight:800;letter-spacing:-.5px}
+.summer-sub{font-size:13px;opacity:.75;margin-top:2px}
+.summer-bar{height:6px;background:rgba(255,255,255,.3);border-radius:3px;margin-top:14px;overflow:hidden}
+.summer-fill{height:100%;background:#fff;border-radius:3px;transition:width .4s}
+.summer-row{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;opacity:.8}
+
+/* DEBT ROW */
+.debt-row{padding:14px 16px;border-bottom:1px solid var(--border)}
+.debt-row:last-child{border-bottom:none}
+.debt-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+.debt-name{font-size:15px;font-weight:700}
+.debt-owed{font-size:18px;font-weight:800;color:var(--red)}
+.debt-meta{font-size:12px;color:var(--muted)}
+.debt-payoff{font-size:12px;color:var(--purple);margin-top:6px;font-weight:600}
+.debt-edit{font-size:12px;color:var(--purple);background:none;border:none;cursor:pointer;padding:6px 0;font-weight:700}
+
+/* SWATCH */
+.swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:border-color .15s}
+.swatch.sel{border-color:var(--text)}
+
+/* TOAST */
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#1F2937;color:#fff;padding:10px 22px;border-radius:20px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.page{display:none}
+.page.active{display:block}
+.empty{text-align:center;padding:28px 20px;color:var(--muted);font-size:14px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+<button class="fab" onclick="openAddTx()" id="fab">+</button>
+
+<!-- ══════ HOME ══════ -->
+<div class="page active" id="page-home">
+  <div class="hdr">
+    <h1 id="month-lbl">May 2026</h1>
+    <div class="hdr-big" id="bal-display">$0</div>
+    <div class="hdr-sub">Current Balance</div>
+    <button class="wbtn" onclick="openBalModal()">Edit Balance</button>
+    <div class="hdr-row">
+      <div class="hdr-stat"><div class="val" id="h-inc">$0</div><div class="lbl">Income</div></div>
+      <div class="hdr-div"></div>
+      <div class="hdr-stat"><div class="val" id="h-spent">$0</div><div class="lbl">Spent</div></div>
+      <div class="hdr-div"></div>
+      <div class="hdr-stat"><div class="val" id="h-bills">$0</div><div class="lbl">Bills Left</div></div>
+    </div>
+  </div>
+  <div class="sec" id="urgent-sec" style="display:none">
+    <div class="sec-title">Due Soon ⚡</div>
+    <div class="card" id="urgent-list"></div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">Recent</div>
+    <div class="card" id="home-tx"></div>
+  </div>
+</div>
+
+<!-- ══════ PLAN ══════ -->
+<div class="page" id="page-plan">
+  <div class="plan-hdr">
+    <h1>Paycheck Plan</h1>
+    <div class="plan-stats">
+      <div><div class="plan-stat-num" id="pc-count">0</div><div class="plan-stat-lbl">Paychecks</div></div>
+      <div><div class="plan-stat-num" id="pc-total">$0</div><div class="plan-stat-lbl">Earned</div></div>
+    </div>
+    <button class="log-btn" onclick="openLogPc()">+ Log Paycheck</button>
+  </div>
+
+  <div class="sec" style="margin-top:16px">
+    <div class="sec-title">This Paycheck — Where It Goes</div>
+    <div class="card" id="cur-breakdown"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">Priorities (highest first)</div>
+    <div class="card" id="pri-list"></div>
+  </div>
+
+  <div class="sec" style="margin-bottom:8px">
+    <div class="sec-title">All Paychecks</div>
+    <div class="card" id="pc-log"></div>
+  </div>
+</div>
+
+<!-- ══════ BILLS ══════ -->
+<div class="page" id="page-bills">
+  <div class="hdr">
+    <h1>Bills & Payments</h1>
+    <div class="hdr-big" id="bills-total">$0</div>
+    <div class="hdr-sub">This month</div>
+    <div class="hdr-row">
+      <div class="hdr-stat"><div class="val" id="bills-paid">$0</div><div class="lbl">Paid</div></div>
+      <div class="hdr-div"></div>
+      <div class="hdr-stat"><div class="val" id="bills-left">$0</div><div class="lbl">Left</div></div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">Monthly (recurring)</div>
+    <div class="card" id="monthly-list"></div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">One-Time Payments</div>
+    <div class="card" id="onetime-list"></div>
+  </div>
+  <div class="sec" style="margin-bottom:8px">
+    <button onclick="openAddBill()" style="width:100%;padding:14px;background:var(--white);border:1.5px dashed var(--border);border-radius:var(--r);font-size:14px;font-weight:600;color:var(--muted);cursor:pointer">+ Add bill or payment</button>
+  </div>
+</div>
+
+<!-- ══════ SUMMER ══════ -->
+<div class="page" id="page-summer">
+  <div class="hdr">
+    <h1>Summer & Debt</h1>
+    <div class="hdr-big" id="debt-total">$0</div>
+    <div class="hdr-sub">Total debt remaining</div>
+  </div>
+  <div style="margin-top:18px">
+    <div class="summer-card">
+      <h3>☀️ Summer Earnings</h3>
+      <div class="summer-big" id="s-earned">$0</div>
+      <div class="summer-sub" id="s-goal-lbl">Goal: $7,500</div>
+      <div class="summer-bar"><div class="summer-fill" id="s-bar" style="width:0%"></div></div>
+      <div class="summer-row"><span id="s-count">0 paychecks</span><span id="s-pct">0%</span></div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">Debts & Loans</div>
+    <div class="card" id="debt-list"></div>
+    <button onclick="openAddDebt()" style="width:100%;padding:14px;background:var(--white);border:1.5px dashed var(--border);border-radius:var(--r);font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;margin-top:10px">+ Add debt or loan</button>
+  </div>
+</div>
+
+<!-- ══════ NAV ══════ -->
+<nav>
+  <button class="active" onclick="showPage('home',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
+  </button>
+  <button onclick="showPage('plan',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>My Plan
+  </button>
+  <button onclick="showPage('bills',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Bills
+  </button>
+  <button onclick="showPage('summer',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>Summer
+  </button>
+</nav>
+
+<!-- ══════ MODAL: LOG PAYCHECK ══════ -->
+<div class="overlay" id="modal-pc" onclick="closeOverlay(event)">
+  <div class="modal">
+    <div class="handle"></div>
+    <h2>Log Paycheck</h2>
+    <label>How much was this paycheck?</label>
+    <div class="amt-wrap">
+      <span class="amt-pre">$</span>
+      <input type="number" id="pc-amount" placeholder="0" inputmode="decimal" oninput="previewAlloc()">
+    </div>
+    <label>Note (optional)</label>
+    <input type="text" id="pc-note" placeholder="e.g. Lifeguard Week 1">
+
+    <!-- LIVE BREAKDOWN PREVIEW -->
+    <div class="preview-wrap" id="pc-preview">
+      <div class="preview-title">Where it goes</div>
+      <div id="pc-preview-rows"></div>
+    </div>
+
+    <button class="save-btn" onclick="savePaycheck()">Save Paycheck</button>
+    <button class="cancel-btn" onclick="closeModal('modal-pc')">Cancel</button>
+  </div>
+</div>
+
+<!-- ══════ MODAL: ADD TRANSACTION ══════ -->
+<div class="overlay" id="modal-tx" onclick="closeOverlay(event)">
+  <div class="modal">
+    <div class="handle"></div>
+    <h2>Add Transaction</h2>
+    <div class="type-toggle">
+      <button class="type-btn exp active" id="t-exp" onclick="setTxType('expense')">Expense</button>
+      <button class="type-btn inc" id="t-inc" onclick="setTxType('income')">Income</button>
+    </div>
+    <label>Amount</label>
+    <div class="amt-wrap"><span class="amt-pre">$</span><input type="number" id="tx-amount" placeholder="0.00" inputmode="decimal"></div>
+    <label>Description</label>
+    <input type="text" id="tx-desc" placeholder="e.g. Target, Starbucks…">
+    <label>Category</label>
+    <select id="tx-cat">
+      <option value="food">🍔 Food & Dining</option>
+      <option value="transport">🚗 Transport</option>
+      <option value="shopping">🛍️ Shopping</option>
+      <option value="entertainment">🎬 Entertainment</option>
+      <option value="health">💊 Health</option>
+      <option value="education">📚 Education</option>
+      <option value="family">👨‍👩‍👧 Family Help</option>
+      <option value="other">💳 Other</option>
+    </select>
+    <button class="save-btn" onclick="saveTx()">Save</button>
+    <button class="cancel-btn" onclick="closeModal('modal-tx')">Cancel</button>
+  </div>
+</div>
+
+<!-- ══════ MODAL: EDIT PRIORITY ══════ -->
+<div class="overlay" id="modal-pri" onclick="closeOverlay(event)">
+  <div class="modal">
+    <div class="handle"></div>
+    <h2 id="pri-modal-title">Add Priority</h2>
+    <label>Name</label>
+    <input type="text" id="pri-name" placeholder="e.g. Car Payment, Savings">
+    <label>Amount per paycheck</label>
+    <div class="amt-wrap"><span class="amt-pre">$</span><input type="number" id="pri-amount" placeholder="0" inputmode="decimal"></div>
+    <label>Emoji</label>
+    <input type="text" id="pri-emoji" placeholder="💰" maxlength="2" style="width:64px">
+    <div id="pri-debt-wrap">
+      <label>Total owed (for payoff countdown, optional)</label>
+      <div class="amt-wrap"><span class="amt-pre">$</span><input type="number" id="pri-debt" placeholder="0" inputmode="decimal"></div>
+    </div>
+    <label>Color</label>
+    <div class="swatches" id="pri-swatches"></div>
+    <div id="pri-spending-wrap" style="margin-top:14px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="pri-is-spending" style="width:18px;height:18px;cursor:pointer">
+        <span style="font-size:14px;font-weight:600;color:var(--text)">This is "spending money" (gets whatever's left)</span>
+      </label>
+    </div>
+    <button class="save-btn" id="pri-save-btn" onclick="savePriority()">Add</button>
+    <button class="cancel-btn" onclick="closeModal('modal-pri')">Cancel</button>
+    <button class="del-btn" id="pri-del-btn" style="display:none" onclick="deletePriority()">Delete this priority</button>
+  </div>
+</div>
+
+<!-- ══════ MODAL: ADD BILL ══════ -->
+<div class="overlay" id="modal-bill" onclick="closeOverlay(event)">
+  <div class="modal">
+    <div class="handle"></div>
+    <h2>Add Bill</h2>
+    <label>Name</label>
+    <input type="text" id="bill-name" placeholder="e.g. Netflix, Insurance">
+    <label>Amount</label>
+    <div class="amt-wrap"><span class="amt-pre">$</span><input type="number" id="bill-amount" placeholder="0" inputmode="decimal"></div>
+    <label>Type</label>
+    <select id="bill-type"><option value="monthly">Monthly recurring</option><option value="onetime">One-time payment</option></select>
+    <label>Due Date (optional)</label>
+    <input type="date" id="bill-due">
+    <label>Emoji</label>
+    <input type="text" id="bill-emoji" placeholder="💳" maxlength="2" style="width:64px">
+    <button class="save-btn" onclick="saveBill()">Add Bill</button>
+    <button class="cancel-btn" onclick="closeModal('modal-bill')">Cancel</button>
+  </div>
+</div>
+
+<!-- ══════ MODAL: DEBT ══════ -->
+<div class="overlay" id="modal-debt" onclick="closeOverlay(event)">
+  <div class="modal">
+    <div class="handle"></div>
+    <h2 id="debt-modal-title">Add Debt</h2>
+    <label>Name</label>
+    <input type="text" id="d-name" placeholder="e.g. Dad, Point Loma">
+    <label>Amount Owed</label>
+    <div class="amt-wrap"><span class="amt-pre">$</span><input type="number" id="d-amount" placeholder="0" inputmode="decimal"></div>
+    <label>Min Payment / month (optional)</label>
+    <div class="amt-wrap"><span class="amt-pre">$</span><input type="number" id="d-min" placeholder="0" inputmode="decimal"></div>
+    <label>Note (optional)</label>
+    <input type="text" id="d-note" placeholder="e.g. No interest">
+    <button class="save-btn" id="d-save-btn" onclick="saveDebt()">Save</button>
+    <button class="cancel-btn" onclick="closeModal('modal-debt')">Cancel</button>
+    <button class="del-btn" id="d-del-btn" style="display:none" onclick="deleteDebt()">Delete</button>
+  </div>
+</div>
+
+<!-- ══════ MODAL: BALANCE ══════ -->
+<div class="overlay" id="modal-bal" onclick="closeOverlay(event)">
+  <div class="modal">
+    <div class="handle"></div>
+    <h2>Update Balance</h2>
+    <label>Current bank balance</label>
+    <div class="amt-wrap"><span class="amt-pre">$</span><input type="number" id="bal-input" placeholder="0" inputmode="decimal"></div>
+    <button class="save-btn" onclick="saveBal()">Update</button>
+    <button class="cancel-btn" onclick="closeModal('modal-bal')">Cancel</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+const KEY = 'budget_v6';
+const NOW = new Date();
+const MONTH = `${NOW.getFullYear()}-${String(NOW.getMonth()+1).padStart(2,'0')}`;
+const COLORS = ['#3B82F6','#8B5CF6','#EC4899','#F59E0B','#10B981','#F97316','#06B6D4','#EF4444','#6366F1','#84CC16'];
+
+let S, editPriId = null, editDebtId = null, selColor = COLORS[0], txType = 'expense';
+
+function uid(){ return Math.random().toString(36).slice(2,9) }
+
+function defaults(){
+  return {
+    balance: 95,
+    transactions: [],
+    bills: [
+      {id:uid(),name:'Car Payment',amount:350,emoji:'🚗',recurring:true,paid:false,dueDay:1},
+      {id:uid(),name:'Gas',amount:100,emoji:'⛽',recurring:true,paid:false,dueDay:15},
+    ],
+    onetime: [
+      {id:uid(),name:'Summer Classes',amount:300,emoji:'📚',paid:false,dueDate:'2026-05-24'},
+      {id:uid(),name:'Oil Change',amount:80,emoji:'🔧',paid:false,dueDate:'2026-05-23'},
+      {id:uid(),name:'Classes (Next Year)',amount:1500,emoji:'🎓',paid:false,dueDate:'2026-08-15'},
+    ],
+    debts: [
+      {id:uid(),name:'Dad (loan)',amount:0,minPayment:0,note:'Tap Edit to enter amount'},
+      {id:uid(),name:'Mom (classes)',amount:300,minPayment:75,note:''},
+      {id:uid(),name:'Point Loma Nazarene',amount:0,minPayment:0,note:'Tap Edit to enter amount'},
+    ],
+    priorities: [
+      {id:uid(),name:'Car Payment (save)',emoji:'🚗',amount:175,priority:1,color:'#3B82F6',debtTotal:0,isSpending:false},
+      {id:uid(),name:'Gas',emoji:'⛽',amount:50,priority:2,color:'#F59E0B',debtTotal:0,isSpending:false},
+      {id:uid(),name:'Repay Mom',emoji:'👩',amount:75,priority:3,color:'#EC4899',debtTotal:300,isSpending:false},
+      {id:uid(),name:'Repay Dad',emoji:'👨',amount:150,priority:4,color:'#8B5CF6',debtTotal:0,isSpending:false},
+      {id:uid(),name:'Hawaii Trip',emoji:'✈️',amount:100,priority:5,color:'#06B6D4',debtTotal:500,isSpending:false},
+      {id:uid(),name:'Savings',emoji:'💰',amount:200,priority:6,color:'#10B981',debtTotal:0,isSpending:false},
+      {id:uid(),name:'Spending Money',emoji:'🛍️',amount:0,priority:7,color:'#F97316',debtTotal:0,isSpending:true},
+    ],
+    paychecks: [],
+    summerGoal: 7500,
+    lastReset: MONTH,
+  }
+}
+
+function load(){
+  try {
+    const raw = localStorage.getItem(KEY);
+    if(raw){ S = JSON.parse(raw); }
+    else { S = defaults(); }
+    if(!S.priorities) S.priorities = defaults().priorities;
+    if(!S.paychecks) S.paychecks = [];
+    if(!S.debts) S.debts = [];
+    if(!S.onetime) S.onetime = [];
+    // Monthly reset
+    if(S.lastReset !== MONTH){
+      S.bills.forEach(b=>{ if(b.recurring) b.paid=false; });
+      S.lastReset = MONTH;
+    }
+  } catch(e){ S = defaults(); }
+  save();
+}
+
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+// ══════════════════════════════════════
+// ALLOCATION
+// ══════════════════════════════════════
+function allocate(amount){
+  const sorted = [...S.priorities].sort((a,b)=>(a.priority||99)-(b.priority||99));
+  let rem = amount;
+  const result = [];
+  sorted.forEach(p => {
+    if(p.isSpending) return;
+    const alloc = Math.min(p.amount, rem);
+    result.push({...p, allocated: alloc, met: alloc >= p.amount});
+    rem = Math.max(0, rem - p.amount);
+  });
+  const spend = sorted.find(p=>p.isSpending);
+  if(spend) result.push({...spend, allocated: rem, met: true});
+  return result;
+}
+
+// ══════════════════════════════════════
+// FORMAT
+// ══════════════════════════════════════
+function fmt(n){ return '$'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}) }
+function fmtDate(s){ return new Date(s+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) }
+function ordinal(n){ const s=['th','st','nd','rd'],v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]) }
+
+// ══════════════════════════════════════
+// NAV
+// ══════════════════════════════════════
+function showPage(name, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('fab').classList.toggle('hide', name==='plan');
+  render();
+}
+
+// ══════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════
+function render(){ renderHome(); renderPlan(); renderBills(); renderSummer(); }
+
+function renderHome(){
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('month-lbl').textContent = `${months[NOW.getMonth()]} ${NOW.getFullYear()}`;
+  document.getElementById('bal-display').textContent = fmt(S.balance);
+
+  const mTx = S.transactions.filter(t=>t.month===MONTH);
+  const inc = mTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const spent = mTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const unpaid = [...S.bills,...S.onetime].filter(b=>!b.paid).reduce((s,b)=>s+b.amount,0);
+  document.getElementById('h-inc').textContent = fmt(inc);
+  document.getElementById('h-spent').textContent = fmt(spent);
+  document.getElementById('h-bills').textContent = fmt(unpaid);
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const in7 = new Date(today); in7.setDate(in7.getDate()+7);
+  const urgent = S.onetime.filter(b=>!b.paid&&b.dueDate&&new Date(b.dueDate+'T00:00:00')<=in7);
+  const uSec = document.getElementById('urgent-sec');
+  if(!urgent.length){ uSec.style.display='none'; }
+  else {
+    uSec.style.display='block';
+    document.getElementById('urgent-list').innerHTML = urgent.map(b=>{
+      const ov = new Date(b.dueDate+'T00:00:00')<today;
+      return `<div class="row"><div class="row-icon">${b.emoji||'💳'}</div><div class="row-info"><div class="row-name">${b.name}<span class="badge ${ov?'badge-red':'badge-yellow'}">${ov?'Overdue':'Due Soon'}</span></div><div class="row-sub">${fmtDate(b.dueDate)}</div></div><div class="row-amt">${fmt(b.amount)}</div></div>`;
+    }).join('');
+  }
+
+  const recent = [...S.transactions].sort((a,b)=>b.ts-a.ts).slice(0,5);
+  const txEl = document.getElementById('home-tx');
+  const EMOJI={food:'🍔',transport:'🚗',shopping:'🛍️',entertainment:'🎬',health:'💊',education:'📚',family:'👨‍👩‍👧',other:'💳'};
+  txEl.innerHTML = recent.length ? recent.map(t=>{
+    const e=EMOJI[t.category]||'💳', sign=t.type==='income'?'+':'-';
+    const date=new Date(t.ts).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    return `<div class="row"><div class="row-icon" style="background:${t.type==='income'?'#D1FAE5':'#FEE2E2'}">${e}</div><div class="row-info"><div class="row-name">${t.desc||t.category}</div><div class="row-sub">${date}</div></div><div class="row-amt ${t.type==='income'?'inc':'exp'}">${sign}${fmt(t.amount)}</div></div>`;
+  }).join('') : '<div class="empty">No transactions yet.<br>Tap + to add one.</div>';
+}
+
+function renderPlan(){
+  const earned = S.paychecks.reduce((s,p)=>s+p.amount,0);
+  document.getElementById('pc-count').textContent = S.paychecks.length;
+  document.getElementById('pc-total').textContent = fmt(earned);
+
+  // Current paycheck breakdown
+  const last = [...S.paychecks].sort((a,b)=>b.ts-a.ts)[0];
+  const bdEl = document.getElementById('cur-breakdown');
+  if(!last){
+    bdEl.innerHTML='<div class="empty">Tap "+ Log Paycheck" — it\'ll show exactly<br>where every dollar goes.</div>';
+  } else {
+    const alloc = allocate(last.amount);
+    const date = new Date(last.ts).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    bdEl.innerHTML = `<div class="pc-hdr"><div class="pc-hdr-lbl">${last.note||'Paycheck'} · ${date}</div><div class="pc-hdr-amt">+${fmt(last.amount)}</div></div>`
+      + alloc.map(b=>`<div class="alloc-row">
+          <div class="alloc-emoji">${b.emoji}</div>
+          <div class="alloc-name">${b.name}</div>
+          <div class="alloc-amt" style="color:${b.allocated>0?b.color:'#D1D5DB'}">${b.allocated>0?fmt(b.allocated):'—'}</div>
+          <div class="alloc-check">${b.met?'<span style="color:#059669">✓</span>':'<span style="color:#D97706;font-size:11px;font-weight:700">short</span>'}</div>
+        </div>`).join('');
+  }
+
+  // Priority list
+  const sorted = [...S.priorities].sort((a,b)=>(a.priority||99)-(b.priority||99));
+  const priEl = document.getElementById('pri-list');
+  priEl.innerHTML = sorted.map((p,i)=>{
+    let sub = p.isSpending ? "Whatever's left after everything else" : `${fmt(p.amount)} per paycheck`;
+    if(p.debtTotal>0&&p.amount>0){ const c=Math.ceil(p.debtTotal/p.amount); sub+=` · paid off in ${c} checks`; }
+    const first=i===0, last=i===sorted.length-1;
+    return `<div class="pri-row">
+      <div class="pri-num" style="background:${p.color}">${i+1}</div>
+      <div class="pri-emoji">${p.emoji}</div>
+      <div class="pri-info"><div class="pri-name">${p.name}</div><div class="pri-sub">${sub}</div></div>
+      <div class="pri-arrows">
+        <button class="arr-btn" ${first?'disabled':''} onclick="movePri('${p.id}',-1)">↑</button>
+        <button class="arr-btn" ${last?'disabled':''} onclick="movePri('${p.id}',1)">↓</button>
+      </div>
+      <button class="pri-edit" onclick="openEditPri('${p.id}')">Edit</button>
+      <button class="pri-del" onclick="confirmDelPri('${p.id}')">✕</button>
+    </div>`;
+  }).join('') + `<div style="padding:12px 16px"><button onclick="openAddPri()" style="width:100%;padding:11px;background:none;border:1.5px dashed var(--border);border-radius:12px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer">+ Add priority</button></div>`;
+
+  // Paycheck log
+  const pcEl = document.getElementById('pc-log');
+  const pcs = [...S.paychecks].sort((a,b)=>b.ts-a.ts);
+  if(!pcs.length){
+    pcEl.innerHTML='<div class="empty">No paychecks logged yet.</div>';
+  } else {
+    pcEl.innerHTML = pcs.map(pc=>{
+      const alloc = allocate(pc.amount);
+      const chips = alloc.filter(b=>b.allocated>0).map(b=>`<span class="chip" style="background:${b.color}22;color:${b.color}">${b.emoji} ${fmt(b.allocated)}</span>`).join('');
+      const date = new Date(pc.ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      return `<div class="pc-row">
+        <div class="pc-row-top">
+          <div class="pc-row-date">${pc.note?pc.note+' · ':''} ${date}</div>
+          <div class="pc-row-right">
+            <div class="pc-row-amt">+${fmt(pc.amount)}</div>
+            <button class="pc-del" onclick="delPaycheck('${pc.id}')">Delete</button>
+          </div>
+        </div>
+        <div class="chips">${chips}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function renderBills(){
+  const all = [...S.bills,...S.onetime];
+  const total = all.reduce((s,b)=>s+b.amount,0);
+  const paid = all.filter(b=>b.paid).reduce((s,b)=>s+b.amount,0);
+  document.getElementById('bills-total').textContent = fmt(total);
+  document.getElementById('bills-paid').textContent = fmt(paid);
+  document.getElementById('bills-left').textContent = fmt(total-paid);
+  const today=new Date(); today.setHours(0,0,0,0);
+  document.getElementById('monthly-list').innerHTML = S.bills.length
+    ? S.bills.map(b=>billRow(b,'bills',today)).join('')
+    : '<div class="empty">No monthly bills</div>';
+  document.getElementById('onetime-list').innerHTML = S.onetime.length
+    ? S.onetime.map(b=>billRow(b,'onetime',today)).join('')
+    : '<div class="empty">No one-time payments</div>';
+}
+
+function billRow(b, key, today){
+  const ov=!b.paid&&b.dueDate&&new Date(b.dueDate+'T00:00:00')<today;
+  const sub=b.dueDate?`Due ${fmtDate(b.dueDate)}`:b.dueDay?`Due ${ordinal(b.dueDay)} of month`:'Monthly';
+  return `<div class="row ${b.paid?'paid':''}">
+    <div class="row-icon">${b.emoji||'💳'}</div>
+    <div class="row-info"><div class="row-name">${b.name}${ov?'<span class="badge badge-red">Overdue</span>':''}</div><div class="row-sub">${sub}</div></div>
+    <div class="row-amt">${fmt(b.amount)}</div>
+    <button class="chk ${b.paid?'on':''}" onclick="toggleBill('${key}','${b.id}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </button>
+  </div>`;
+}
+
+function renderSummer(){
+  const totalDebt = S.debts.reduce((s,d)=>s+(d.amount||0),0);
+  document.getElementById('debt-total').textContent = fmt(totalDebt);
+  const earned = S.paychecks.reduce((s,p)=>s+p.amount,0);
+  const goal = S.summerGoal||7500;
+  const pct = Math.min(100,Math.round(earned/goal*100));
+  document.getElementById('s-earned').textContent = fmt(earned);
+  document.getElementById('s-goal-lbl').textContent = `Goal: ${fmt(goal)}`;
+  document.getElementById('s-bar').style.width = pct+'%';
+  document.getElementById('s-count').textContent = `${S.paychecks.length} paycheck${S.paychecks.length!==1?'s':''}`;
+  document.getElementById('s-pct').textContent = pct+'% of goal';
+
+  document.getElementById('debt-list').innerHTML = S.debts.length
+    ? S.debts.map(d=>{
+        const pri = S.priorities.find(p=>!p.isSpending&&p.name.toLowerCase().includes(d.name.split(' ')[0].toLowerCase()));
+        let payoff='';
+        if(d.amount>0&&pri&&pri.amount>0){ const c=Math.ceil(d.amount/pri.amount); payoff=`<div class="debt-payoff">At ${fmt(pri.amount)}/paycheck → paid off in ${c} checks (~${Math.ceil(c/2)} months)</div>`; }
+        return `<div class="debt-row">
+          <div class="debt-top"><div><div class="debt-name">${d.name}</div><div class="debt-meta">${d.note||''}</div></div><div class="debt-owed">${d.amount?fmt(d.amount):'—'}</div></div>
+          ${payoff}
+          <button class="debt-edit" onclick="openEditDebt('${d.id}')">✏️ Edit</button>
+        </div>`;
+      }).join('')
+    : '<div class="empty">No debts added</div>';
+}
+
+// ══════════════════════════════════════
+// MODALS
+// ══════════════════════════════════════
+function closeModal(id){ document.getElementById(id).classList.remove('open') }
+function openM(id){ document.getElementById(id).classList.add('open') }
+function closeOverlay(e){ if(e.target===e.currentTarget) e.currentTarget.classList.remove('open') }
+
+// LOG PAYCHECK
+function openLogPc(){
+  document.getElementById('pc-amount').value='';
+  document.getElementById('pc-note').value='';
+  document.getElementById('pc-preview').classList.remove('show');
+  document.getElementById('pc-preview-rows').innerHTML='';
+  openM('modal-pc');
+  setTimeout(()=>document.getElementById('pc-amount').focus(),300);
+}
+
+function previewAlloc(){
+  const amt = parseFloat(document.getElementById('pc-amount').value)||0;
+  const wrap = document.getElementById('pc-preview');
+  if(amt<=0){ wrap.classList.remove('show'); return; }
+  wrap.classList.add('show');
+  const alloc = allocate(amt);
+  document.getElementById('pc-preview-rows').innerHTML = alloc.map(b=>`
+    <div class="preview-row">
+      <div class="preview-emoji">${b.emoji}</div>
+      <div class="preview-name">${b.name}</div>
+      <div class="preview-amt" style="color:${b.allocated>0?b.color:'#D1D5DB'}">${b.allocated>0?fmt(b.allocated):'—'}</div>
+      <div class="preview-chk">${b.met?'<span style="color:#059669">✓</span>':b.allocated>0?'<span style="color:#D97706;font-size:11px;font-weight:700">partial</span>':'<span style="color:#D1D5DB">—</span>'}</div>
+    </div>`).join('');
+}
+
+function savePaycheck(){
+  const amt = parseFloat(document.getElementById('pc-amount').value);
+  const note = document.getElementById('pc-note').value.trim();
+  if(!amt||amt<=0){ toast('Enter an amount'); return; }
+  const pc = {id:uid(), amount:amt, note, ts:Date.now()};
+  S.paychecks.push(pc);
+  S.balance += amt;
+  S.transactions.push({id:uid(),type:'income',amount:amt,desc:note||'Paycheck',category:'paycheck',ts:Date.now(),month:MONTH});
+  save(); closeModal('modal-pc'); render();
+  toast(`+${fmt(amt)} logged 💚`);
+}
+
+function delPaycheck(id){
+  const pc = S.paychecks.find(p=>p.id===id);
+  if(!pc) return;
+  S.paychecks = S.paychecks.filter(p=>p.id!==id);
+  S.balance -= pc.amount;
+  S.transactions = S.transactions.filter(t=>!(t.type==='income'&&Math.abs(t.ts-pc.ts)<5000));
+  save(); render(); toast('Paycheck deleted');
+}
+
+// ADD TRANSACTION
+function openAddTx(){
+  document.getElementById('tx-amount').value='';
+  document.getElementById('tx-desc').value='';
+  setTxType('expense');
+  openM('modal-tx');
+  setTimeout(()=>document.getElementById('tx-amount').focus(),300);
+}
+function setTxType(t){
+  txType=t;
+  document.getElementById('t-exp').classList.toggle('active',t==='expense');
+  document.getElementById('t-inc').classList.toggle('active',t==='income');
+}
+function saveTx(){
+  const amt=parseFloat(document.getElementById('tx-amount').value);
+  const desc=document.getElementById('tx-desc').value.trim();
+  const cat=document.getElementById('tx-cat').value;
+  if(!amt||amt<=0){ toast('Enter an amount'); return; }
+  S.transactions.push({id:uid(),type:txType,amount:amt,desc,category:cat,ts:Date.now(),month:MONTH});
+  S.balance += txType==='income' ? amt : -amt;
+  save(); closeModal('modal-tx'); render();
+  toast(txType==='income'?`+${fmt(amt)} added`:` -${fmt(amt)} logged`);
+}
+
+// PRIORITIES
+function buildSwatches(selected){
+  selColor = selected||COLORS[0];
+  document.getElementById('pri-swatches').innerHTML = COLORS.map(c=>
+    `<div class="swatch ${c===selColor?'sel':''}" style="background:${c}" onclick="pickColor('${c}')"></div>`
+  ).join('');
+}
+function pickColor(c){
+  selColor=c;
+  document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('sel',s.style.background===c));
+}
+
+function openAddPri(){
+  editPriId=null;
+  document.getElementById('pri-modal-title').textContent='Add Priority';
+  document.getElementById('pri-save-btn').textContent='Add';
+  document.getElementById('pri-del-btn').style.display='none';
+  document.getElementById('pri-name').value='';
+  document.getElementById('pri-amount').value='';
+  document.getElementById('pri-emoji').value='';
+  document.getElementById('pri-debt').value='';
+  document.getElementById('pri-is-spending').checked=false;
+  buildSwatches(COLORS[Math.floor(Math.random()*COLORS.length)]);
+  openM('modal-pri');
+}
+
+function openEditPri(id){
+  const p=S.priorities.find(x=>x.id===id); if(!p) return;
+  editPriId=id;
+  document.getElementById('pri-modal-title').textContent='Edit Priority';
+  document.getElementById('pri-save-btn').textContent='Save';
+  document.getElementById('pri-del-btn').style.display='block';
+  document.getElementById('pri-name').value=p.name;
+  document.getElementById('pri-amount').value=p.amount||'';
+  document.getElementById('pri-emoji').value=p.emoji||'';
+  document.getElementById('pri-debt').value=p.debtTotal||'';
+  document.getElementById('pri-is-spending').checked=!!p.isSpending;
+  buildSwatches(p.color||COLORS[0]);
+  openM('modal-pri');
+}
+
+function savePriority(){
+  const name=document.getElementById('pri-name').value.trim();
+  const amount=parseFloat(document.getElementById('pri-amount').value)||0;
+  const emoji=document.getElementById('pri-emoji').value||'💰';
+  const debtTotal=parseFloat(document.getElementById('pri-debt').value)||0;
+  const isSpending=document.getElementById('pri-is-spending').checked;
+  if(!name){ toast('Enter a name'); return; }
+  if(editPriId){
+    const i=S.priorities.findIndex(p=>p.id===editPriId);
+    if(i>=0) S.priorities[i]={...S.priorities[i],name,amount,emoji,debtTotal,isSpending,color:selColor};
+  } else {
+    const maxP=S.priorities.reduce((m,p)=>Math.max(m,p.priority||0),0);
+    S.priorities.push({id:uid(),name,amount,emoji,debtTotal,isSpending,color:selColor,priority:maxP+1});
+  }
+  save(); closeModal('modal-pri'); render(); toast('Saved ✓');
+}
+
+function confirmDelPri(id){
+  if(S.priorities.length<=1){ toast('Need at least one priority'); return; }
+  S.priorities=S.priorities.filter(p=>p.id!==id);
+  S.priorities.sort((a,b)=>(a.priority||99)-(b.priority||99)).forEach((p,i)=>p.priority=i+1);
+  save(); render(); toast('Deleted');
+}
+
+function deletePriority(){
+  if(!editPriId) return;
+  confirmDelPri(editPriId);
+  closeModal('modal-pri');
+}
+
+function movePri(id, dir){
+  const sorted=[...S.priorities].sort((a,b)=>(a.priority||99)-(b.priority||99));
+  const i=sorted.findIndex(p=>p.id===id);
+  const j=i+dir;
+  if(j<0||j>=sorted.length) return;
+  const tmp=sorted[i].priority;
+  sorted[i].priority=sorted[j].priority;
+  sorted[j].priority=tmp;
+  save(); render();
+}
+
+// BILLS
+function openAddBill(){
+  ['bill-name','bill-emoji'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('bill-amount').value='';
+  document.getElementById('bill-due').value='';
+  document.getElementById('bill-type').value='monthly';
+  openM('modal-bill');
+}
+function saveBill(){
+  const name=document.getElementById('bill-name').value.trim();
+  const amount=parseFloat(document.getElementById('bill-amount').value);
+  const type=document.getElementById('bill-type').value;
+  const due=document.getElementById('bill-due').value;
+  const emoji=document.getElementById('bill-emoji').value||'💳';
+  if(!name){ toast('Enter a name'); return; }
+  if(!amount||amount<=0){ toast('Enter an amount'); return; }
+  const bill={id:uid(),name,amount,emoji,paid:false};
+  if(type==='monthly'){ bill.recurring=true; S.bills.push(bill); }
+  else { bill.dueDate=due||null; S.onetime.push(bill); }
+  save(); closeModal('modal-bill'); render(); toast('Bill added ✓');
+}
+function toggleBill(key,id){
+  const b=S[key].find(x=>x.id===id); if(!b) return;
+  b.paid=!b.paid; save(); render();
+  toast(b.paid?'✅ Marked paid':'Marked unpaid');
+}
+
+// DEBTS
+function openAddDebt(){
+  editDebtId=null;
+  document.getElementById('debt-modal-title').textContent='Add Debt';
+  document.getElementById('d-save-btn').textContent='Add';
+  document.getElementById('d-del-btn').style.display='none';
+  ['d-name','d-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('d-amount').value='';
+  document.getElementById('d-min').value='';
+  openM('modal-debt');
+}
+function openEditDebt(id){
+  const d=S.debts.find(x=>x.id===id); if(!d) return;
+  editDebtId=id;
+  document.getElementById('debt-modal-title').textContent='Edit Debt';
+  document.getElementById('d-save-btn').textContent='Save';
+  document.getElementById('d-del-btn').style.display='block';
+  document.getElementById('d-name').value=d.name;
+  document.getElementById('d-amount').value=d.amount||'';
+  document.getElementById('d-min').value=d.minPayment||'';
+  document.getElementById('d-note').value=d.note||'';
+  openM('modal-debt');
+}
+function saveDebt(){
+  const name=document.getElementById('d-name').value.trim();
+  const amount=parseFloat(document.getElementById('d-amount').value)||0;
+  const minPayment=parseFloat(document.getElementById('d-min').value)||0;
+  const note=document.getElementById('d-note').value.trim();
+  if(!name){ toast('Enter a name'); return; }
+  if(editDebtId){
+    const i=S.debts.findIndex(d=>d.id===editDebtId);
+    if(i>=0) S.debts[i]={...S.debts[i],name,amount,minPayment,note};
+  } else {
+    S.debts.push({id:uid(),name,amount,minPayment,note});
+  }
+  save(); closeModal('modal-debt'); render(); toast('Saved ✓');
+}
+function deleteDebt(){
+  if(!editDebtId) return;
+  S.debts=S.debts.filter(d=>d.id!==editDebtId);
+  save(); closeModal('modal-debt'); render(); toast('Deleted');
+}
+
+// BALANCE
+function openBalModal(){
+  document.getElementById('bal-input').value=S.balance;
+  openM('modal-bal');
+  setTimeout(()=>{ document.getElementById('bal-input').select(); },300);
+}
+function saveBal(){
+  const v=parseFloat(document.getElementById('bal-input').value);
+  if(isNaN(v)){ toast('Enter a valid amount'); return; }
+  S.balance=v; save(); closeModal('modal-bal'); render(); toast('Balance updated ✓');
+}
+
+// TOAST
+let toastT;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),2000);
+}
+
+// INIT
+load(); render();
+function posFab(){ document.getElementById('fab').style.right=Math.max(16,(window.innerWidth-430)/2+16)+'px'; }
+window.addEventListener('resize',posFab); posFab();
+</script>
+</body>
+</html>
